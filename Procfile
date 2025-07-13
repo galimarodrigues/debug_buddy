@@ -1,1 +1,1 @@
-web: gunicorn debug_buddy.wsgi:application --log-file -
+web: python manage.py collectstatic --noinput && gunicorn debug_buddy.wsgi:application --log-file -

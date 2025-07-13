@@ -122,6 +122,9 @@ STATIC_URL = os.getenv('RAILWAY_STATIC_URL', '/static/')
 # Django will automatically find static files in the 'static' directory of each app
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
+# Create the staticfiles directory if it doesn't exist
+os.makedirs(STATIC_ROOT, exist_ok=True)
+
 # Whitenoise settings for static files
 # Using StaticFilesStorage instead of CompressedManifestStaticFilesStorage to avoid issues with favicon
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
