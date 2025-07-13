@@ -29,7 +29,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+# Set DEBUG to True temporarily to diagnose 500 errors, then set back to False
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'  # Temporarily set default to True for troubleshooting
 
 ALLOWED_HOSTS = ['*']  # Allow all hosts for now, restrict this in production
 
@@ -127,7 +128,7 @@ os.makedirs(STATIC_ROOT, exist_ok=True)
 
 # Whitenoise settings for static files
 # Using StaticFilesStorage instead of CompressedManifestStaticFilesStorage to avoid issues with favicon
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
 WHITENOISE_USE_FINDERS = True  # Allow whitenoise to find files in the static directories
 
 # Default primary key field type

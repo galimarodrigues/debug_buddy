@@ -73,11 +73,16 @@ def analyze_log(request: HttpRequest) -> HttpResponse:
                 else:
                     ip_address = request.META.get('REMOTE_ADDR')
 
-                LogAnalysis.objects.create(
-                    log_input=log_text,
-                    ai_response=result,
-                    ip_address=ip_address
-                )
+                try:
+                    LogAnalysis.objects.create(
+                        log_input=log_text,
+                        ai_response=result,
+                        ip_address=ip_address
+                    )
+                except Exception as db_error:
+                    # Log the database error but don't fail the request
+                    print(f"Database error: {str(db_error)}")
+                    # Continue with the response even if saving to DB fails
 
             except Exception as e:
                 result = f"Erro ao chamar a API do OpenAI: {str(e)}"
@@ -98,14 +103,19 @@ def history(request: HttpRequest) -> HttpResponse:
     Returns:
         Rendered HTML response with the log analysis history
     """
-    # Get client IP address
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip_address = x_forwarded_for.split(',')[0]
-    else:
-        ip_address = request.META.get('REMOTE_ADDR')
+    try:
+        # Get client IP address
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip_address = x_forwarded_for.split(',')[0]
+        else:
+            ip_address = request.META.get('REMOTE_ADDR')
 
-    # Filter analyses by the user's IP address
-    analyses = LogAnalysis.objects.filter(ip_address=ip_address).order_by('-created_at')
+        # Filter analyses by the user's IP address
+        analyses = LogAnalysis.objects.filter(ip_address=ip_address).order_by('-created_at')
 
-    return render(request, "analyzer/history.html", {"analyses": analyses})
+        return render(request, "analyzer/history.html", {"analyses": analyses})
+    except Exception as e:
+        # Log the error but return an empty analyses list
+        print(f"Error in history view: {str(e)}")
+        return render(request, "analyzer/history.html", {"analyses": [], "error": "Não foi possível carregar o histórico."})
