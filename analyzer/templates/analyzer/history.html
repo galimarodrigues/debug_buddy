@@ -1,0 +1,67 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug Buddy - Histórico</title>
+  <link rel="stylesheet" href="{% static 'analyzer/styles.css' %}">
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <div class="logo">
+        <span class="logo-icon">🐞</span>
+        <h1>Debug Buddy</h1>
+      </div>
+      <nav class="main-nav">
+        <a href="{% url 'analyze_log' %}" class="nav-link">Analisador</a>
+        <a href="{% url 'history' %}" class="nav-link active">Histórico</a>
+      </nav>
+    </header>
+
+    <main>
+      <div class="history-header">
+        <h2>Histórico de Análises</h2>
+      </div>
+
+      {% if analyses %}
+        <div class="history-list">
+          {% for analysis in analyses %}
+            <div class="history-item">
+              <div class="history-item-header">
+                <span class="history-date">{{ analysis.created_at|date:"d/m/Y H:i" }}</span>
+                <span class="history-id">#{{ analysis.id }}</span>
+              </div>
+
+              <div class="history-content">
+                <div class="history-log">
+                  <h3>Log de Erro:</h3>
+                  <pre class="log-code">{{ analysis.log_input|truncatechars:300 }}</pre>
+                </div>
+
+                <div class="history-response">
+                  <h3>Análise:</h3>
+                  <pre>{{ analysis.ai_response }}</pre>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">📜</div>
+          <h2>Nenhuma análise encontrada</h2>
+          <p>Você ainda não realizou nenhuma análise de logs. Volte para a página inicial para analisar um log.</p>
+        </div>
+      {% endif %}
+    </main>
+
+    <footer>
+      <div class="footer-content">
+        <p>© 2025 Debug Buddy - Análise de logs Python/Django com IA</p>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,173 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug Buddy</title>
+  <link rel="stylesheet" href="{% static 'analyzer/styles.css' %}">
+  <script>
+    const errorsMock = [
+      `TemplateSyntaxError at /
+Erro de sintaxe de template na linha 6: 'static'. Você esqueceu de registrar ou carregar esta tag?
+Request Method: GET
+Request URL: http://127.0.0.1:8000/
+Django Version: 5.2.4
+Localização da Exceção: django/template/base.py, linha 577
+Python Version: 3.13.3`,
+
+      `IntegrityError at /admin/app/modelo/add/
+ERRO:  violação de restrição de valor único "app_modelo_campo_key"
+DETALHE:  Chave (campo)=(valor) já existe.
+Request Method: POST
+Django Version: 5.2.4
+Exception Type: IntegrityError`,
+
+      `NoReverseMatch at /perfil/
+Padrão de URL 'detalhe' não encontrado. 'nome_app' não é um namespace válido
+Request Method: GET
+Request URL: http://127.0.0.1:8000/perfil/
+Django Version: 5.2.4
+Exception Type: NoReverseMatch`,
+
+      `OperationalError at /
+Não foi possível conectar ao banco de dados: connection timed out
+Request Method: GET
+Request URL: http://127.0.0.1:8000/
+Django Version: 5.2.4
+Exception Type: OperationalError`,
+
+      `ImportError at /
+Não foi possível importar o módulo 'app.views'. Erro: No module named 'app.views'
+Request Method: GET
+Request URL: http://127.0.0.1:8000/
+Django Version: 5.2.4
+Exception Type: ImportError`
+    ];
+
+    function insertRandomError() {
+      const randomIndex = Math.floor(Math.random() * errorsMock.length);
+      document.querySelector('textarea[name="log_text"]').value = errorsMock[randomIndex];
+    }
+
+    function showLoading() {
+      // Disable buttons
+      document.querySelector('.btn-sample').disabled = true;
+      document.querySelector('.btn-submit').disabled = true;
+
+      // Change the submit button to show loading state
+      const submitButton = document.querySelector('.btn-submit');
+      submitButton.innerHTML = `
+        <div class="loading-dots">
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </div>
+        <span class="btn-text">Analisando</span>
+      `;
+
+      // Add loading class to the form
+      document.querySelector('.input-form').classList.add('loading');
+    }
+
+    function simulateTyping(text, element, speed = 10) {
+      let index = 0;
+      element.textContent = '';
+
+      function type() {
+        if (index < text.length) {
+          element.textContent += text.charAt(index);
+          index++;
+          setTimeout(type, speed);
+        }
+      }
+
+      type();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check if there's an AI response
+      const aiResponse = document.querySelector('.ai-message pre');
+      if (aiResponse && aiResponse.textContent.trim() !== '') {
+        const responseText = aiResponse.textContent;
+        aiResponse.textContent = '';
+
+        // Add a small delay before starting the typing animation
+        setTimeout(() => {
+          simulateTyping(responseText, aiResponse);
+        }, 500);
+      }
+    });
+  </script>
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <div class="logo">
+        <span class="logo-icon">🐞</span>
+        <h1>Debug Buddy</h1>
+      </div>
+      <nav class="main-nav">
+        <a href="{% url 'analyze_log' %}" class="nav-link active">Analisador</a>
+        <a href="{% url 'history' %}" class="nav-link">Histórico</a>
+      </nav>
+    </header>
+
+    <main>
+      {% if not result %}
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <h2>Analisador de Logs Django/Python</h2>
+          <p>Cole seu log de erro abaixo para obter uma análise detalhada do problema e possíveis soluções.</p>
+        </div>
+      {% else %}
+        <div class="conversation">
+          <div class="message user-message">
+            <div class="message-avatar">👤</div>
+            <div class="message-content">
+              <pre class="log-code">{{ request.POST.log_text|truncatechars:500 }}</pre>
+            </div>
+          </div>
+
+          <div class="message ai-message">
+            <div class="message-avatar">🤖</div>
+            <div class="message-content">
+              <pre>{{ result }}</pre>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="input-section">
+        <form method="post" class="input-form" onsubmit="showLoading()">
+          {% csrf_token %}
+          <div class="input-container">
+            <textarea
+              name="log_text"
+              placeholder="Cole seu log de erro Python/Django aqui..."
+              required
+              rows="4"></textarea>
+
+            <div class="button-group">
+              <button type="button" onclick="insertRandomError()" class="btn-sample" title="Inserir exemplo de erro">
+                <span>🎲</span>
+                <span class="btn-text">Exemplo</span>
+              </button>
+              <button type="submit" class="btn-submit">
+                <span>✨</span>
+                <span class="btn-text">Analisar</span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </main>
+
+    <footer>
+      <div class="footer-content">
+        <p>© 2024 Debug Buddy - Análise de logs Python/Django com IA</p>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>
