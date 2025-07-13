@@ -48,7 +48,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add whitenoise middleware for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -56,9 +56,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
-# Whitenoise configuration
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 ROOT_URLCONF = 'debug_buddy.urls'
 
@@ -76,9 +73,6 @@ TEMPLATES = [
         },
     },
 ]
-
-WSGI_APPLICATION = 'debug_buddy.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -124,10 +118,14 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = os.getenv('RAILWAY_STATIC_URL', '/static/')
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
-]
+# We don't need STATICFILES_DIRS for app-specific static files
+# Django will automatically find static files in the 'static' directory of each app
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Whitenoise settings for static files
+# Using StaticFilesStorage instead of CompressedManifestStaticFilesStorage to avoid issues with favicon
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+WHITENOISE_USE_FINDERS = True  # Allow whitenoise to find files in the static directories
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
