@@ -1,11 +1,14 @@
 [phases.setup]
 nixPkgs = ["python311", "gcc", "postgresql"]
 
+[variables]
+NIXPACKS_PATH = "/opt/venv/bin:${NIXPACKS_PATH}"
+
 [phases.install]
-cmds = ["python -m ensurepip", "python -m pip install --upgrade pip", "pip install -r requirements.txt"]
+cmds = ["python -m ensurepip", "python -m venv --copies /opt/venv", ". /opt/venv/bin/activate && python -m pip install --upgrade pip", ". /opt/venv/bin/activate && pip install -r requirements.txt"]
 
 [phases.build]
-cmds = ["python manage.py collectstatic --noinput", "python manage.py migrate"]
+cmds = [". /opt/venv/bin/activate && python manage.py collectstatic --noinput", ". /opt/venv/bin/activate && python manage.py migrate"]
 
 [phases.start]
-cmds = ["gunicorn debug_buddy.wsgi --log-file - --bind 0.0.0.0:${PORT:-8000}"]
+cmds = [". /opt/venv/bin/activate && /opt/venv/bin/gunicorn debug_buddy.wsgi --log-file - --bind 0.0.0.0:${PORT:-8000}"]
