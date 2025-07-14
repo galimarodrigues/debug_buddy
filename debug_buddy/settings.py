@@ -80,9 +80,19 @@ TEMPLATES = [
 
 import dj_database_url
 
-DATABASES = {
-    'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
-}
+if DEBUG:
+    # Local development - use Supabase
+    DATABASES = {
+        'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
+    }
+else:
+    # Production - use SQLite
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 CSRF_TRUSTED_ORIGINS = [
     'https://debugbuddy.up.railway.app',
