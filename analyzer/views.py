@@ -104,28 +104,16 @@ def analyze_log(request: HttpRequest) -> HttpResponse:
 
 def history(request: HttpRequest) -> HttpResponse:
     try:
-        # Try to get client IP address
-        ip_address = get_client_ip(request)
-
         # Get session UUID
         session_uuid = request.session.get('session_uuid')
 
-        # Prepare filter conditions
-        from django.db.models import Q
-        query = Q()
-
-        if ip_address:
-            query |= Q(ip_address=ip_address)
-        if session_uuid:
-            query |= Q(session_id=session_uuid)
-
-        if not query:
-            # If we have neither IP nor session UUID, show an error
+        if not session_uuid:
+            # If we don't have a session UUID, show an error
             return render(request, "analyzer/history.html",
                           {"analyses": [], "error": "Não foi possível identificar sua sessão."})
 
-        # Filter analyses by either IP or session UUID
-        analyses = LogAnalysis.objects.filter(query).order_by('-created_at')
+        # Filter analyses by session UUID only
+        analyses = LogAnalysis.objects.filter(session_id=session_uuid).order_by('-created_at')
 
         return render(request, "analyzer/history.html", {"analyses": analyses})
     except Exception as e:
