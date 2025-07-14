@@ -32,7 +32,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # Set DEBUG to True temporarily to diagnose 500 errors, then set back to False
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'  # Temporarily set default to True for troubleshooting
 
-ALLOWED_HOSTS = ['*']  # Allow all hosts for now, restrict this in production
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
