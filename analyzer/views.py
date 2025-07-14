@@ -54,6 +54,9 @@ def get_client_ip(request: HttpRequest) -> str:
     return ip
 
 
+import uuid
+
+
 def analyze_log(request: HttpRequest) -> HttpResponse:
     result: Optional[str] = None
 
@@ -74,19 +77,24 @@ def analyze_log(request: HttpRequest) -> HttpResponse:
                 )
                 result = response['choices'][0]['message']['content']
 
-                # Get client IP address using the utility function
+                # Try to get client IP address
                 ip_address = get_client_ip(request)
+
+                # Generate or retrieve a session UUID
+                session_uuid = request.session.get('session_uuid')
+                if not session_uuid:
+                    session_uuid = str(uuid.uuid4())
+                    request.session['session_uuid'] = session_uuid
 
                 try:
                     LogAnalysis.objects.create(
                         log_input=log_text,
                         ai_response=result,
-                        ip_address=ip_address
+                        ip_address=ip_address,
+                        session_id=session_uuid
                     )
                 except Exception as db_error:
-                    # Log the database error but don't fail the request
                     print(f"Database error: {str(db_error)}")
-                    # Continue with the response even if saving to DB fails
 
             except Exception as e:
                 result = f"Erro ao chamar a API do OpenAI: {str(e)}"
@@ -96,20 +104,31 @@ def analyze_log(request: HttpRequest) -> HttpResponse:
 
 def history(request: HttpRequest) -> HttpResponse:
     try:
-        # Get client IP address using the utility function
+        # Try to get client IP address
         ip_address = get_client_ip(request)
 
-        # If we have no IP address, return empty list
-        if not ip_address:
-            return render(request, "analyzer/history.html",
-                          {"analyses": [], "error": "Não foi possível identificar seu endereço IP."})
+        # Get session UUID
+        session_uuid = request.session.get('session_uuid')
 
-        # Filter analyses by the user's IP address
-        analyses = LogAnalysis.objects.filter(ip_address=ip_address).order_by('-created_at')
+        # Prepare filter conditions
+        from django.db.models import Q
+        query = Q()
+
+        if ip_address:
+            query |= Q(ip_address=ip_address)
+        if session_uuid:
+            query |= Q(session_id=session_uuid)
+
+        if not query:
+            # If we have neither IP nor session UUID, show an error
+            return render(request, "analyzer/history.html",
+                          {"analyses": [], "error": "Não foi possível identificar sua sessão."})
+
+        # Filter analyses by either IP or session UUID
+        analyses = LogAnalysis.objects.filter(query).order_by('-created_at')
 
         return render(request, "analyzer/history.html", {"analyses": analyses})
     except Exception as e:
-        # Log the error but return an empty analyses list
         print(f"Error in history view: {str(e)}")
         return render(request, "analyzer/history.html",
                       {"analyses": [], "error": "Não foi possível carregar o histórico."})
