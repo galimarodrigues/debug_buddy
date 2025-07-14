@@ -54,11 +54,33 @@ def get_client_ip(request: HttpRequest) -> str:
     return ip
 
 
+import hashlib
 import uuid
+
+
+def get_or_create_user_id(request: HttpRequest) -> str:
+    """
+    Generate or retrieve a persistent user identifier using cookies.
+
+    Args:
+        request: The HTTP request object
+
+    Returns:
+        A unique user identifier string
+    """
+    user_id = request.COOKIES.get('user_id')
+
+    # Return existing ID if found
+    if user_id:
+        return user_id
+
+    # No cookie found, this will be set in the response
+    return str(uuid.uuid4())
 
 
 def analyze_log(request: HttpRequest) -> HttpResponse:
     result: Optional[str] = None
+    user_id = get_or_create_user_id(request)
 
     if request.method == "POST":
         log_text = request.POST.get("log_text")
@@ -77,21 +99,11 @@ def analyze_log(request: HttpRequest) -> HttpResponse:
                 )
                 result = response['choices'][0]['message']['content']
 
-                # Try to get client IP address
-                ip_address = get_client_ip(request)
-
-                # Generate or retrieve a session UUID
-                session_uuid = request.session.get('session_uuid')
-                if not session_uuid:
-                    session_uuid = str(uuid.uuid4())
-                    request.session['session_uuid'] = session_uuid
-
                 try:
                     LogAnalysis.objects.create(
                         log_input=log_text,
                         ai_response=result,
-                        ip_address=ip_address,
-                        session_id=session_uuid
+                        ip_address=user_id  # Store the user_id in the ip_address field
                     )
                 except Exception as db_error:
                     print(f"Database error: {str(db_error)}")
@@ -99,21 +111,31 @@ def analyze_log(request: HttpRequest) -> HttpResponse:
             except Exception as e:
                 result = f"Erro ao chamar a API do OpenAI: {str(e)}"
 
-    return render(request, "analyzer/analyze_log.html", {"result": result})
+    response = render(request, "analyzer/analyze_log.html", {"result": result})
+
+    # Set cookie if it doesn't exist
+    if not request.COOKIES.get('user_id'):
+        response.set_cookie('user_id', user_id, max_age=31536000)  # 1 year
+
+    return response
 
 
 def history(request: HttpRequest) -> HttpResponse:
     try:
-        # Get session UUID
-        session_uuid = request.session.get('session_uuid')
+        # First try to get user_id from cookie
+        user_id = request.COOKIES.get('user_id')
 
-        if not session_uuid:
-            # If we don't have a session UUID, show an error
-            return render(request, "analyzer/history.html",
-                          {"analyses": [], "error": "Não foi possível identificar sua sessão."})
-
-        # Filter analyses by session UUID only
-        analyses = LogAnalysis.objects.filter(session_id=session_uuid).order_by('-created_at')
+        if user_id:
+            # Filter analyses by the user_id stored in ip_address field
+            analyses = LogAnalysis.objects.filter(ip_address=user_id).order_by('-created_at')
+        else:
+            # Fallback to IP address if no cookie is found
+            ip = get_client_ip(request)
+            if ip:
+                analyses = LogAnalysis.objects.filter(ip_address=ip).order_by('-created_at')
+            else:
+                # If neither cookie nor IP is available, return empty list
+                analyses = LogAnalysis.objects.none()
 
         return render(request, "analyzer/history.html", {"analyses": analyses})
     except Exception as e:
