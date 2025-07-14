@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 import openai
-from typing import Optional
+from typing import Optional, List
 from .models import LogAnalysis
 
 
@@ -71,6 +71,16 @@ def get_or_create_session_id(request: HttpRequest) -> str:
 
 
 def analyze_log(request: HttpRequest) -> HttpResponse:
+    """
+    Process a log analysis request. If the request is a POST with log text,
+    send the log to OpenAI for analysis and store the result.
+
+    Args:
+        request: The HTTP request object containing the log text in POST data
+
+    Returns:
+        HttpResponse with the rendered template including analysis results
+    """
     result: Optional[str] = None
 
     # Get both IP address and session ID
@@ -78,10 +88,10 @@ def analyze_log(request: HttpRequest) -> HttpResponse:
     session_id = get_or_create_session_id(request)
 
     if request.method == "POST":
-        log_text = request.POST.get("log_text")
+        log_text: Optional[str] = request.POST.get("log_text")
         if log_text:
             openai.api_key = settings.OPENAI_API_KEY
-            prompt = build_prompt(log_text)
+            prompt: str = build_prompt(log_text)
             try:
                 response = openai.ChatCompletion.create(
                     model="gpt-4",
@@ -112,10 +122,24 @@ def analyze_log(request: HttpRequest) -> HttpResponse:
 
 
 def history(request: HttpRequest) -> HttpResponse:
+    """
+    Retrieve and display the user's log analysis history.
+    First tries to find analyses by IP address, then by session ID.
+
+    Args:
+        request: The HTTP request object
+
+    Returns:
+        HttpResponse with the rendered template including analysis history
+    """
     try:
         # Get both identifiers
-        client_ip = get_client_ip(request)
-        session_id = request.session.session_key  # Don't create if it doesn't exist
+        client_ip: str = get_client_ip(request)
+        session_id: Optional[str] = request.session.session_key  # Don't create if it doesn't exist
+
+        analyses: List[LogAnalysis] = []
+        message: Optional[str] = None
+        error: Optional[str] = None
 
         # First try using IP address
         if client_ip:
@@ -130,10 +154,11 @@ def history(request: HttpRequest) -> HttpResponse:
                 return render(request, "analyzer/history.html", {"analyses": analyses})
 
         # If we reach here, no analyses were found by either method
-        return render(request, "analyzer/history.html",
-                      {"analyses": [], "message": "Nenhuma análise encontrada no histórico."})
+        message = "Nenhuma análise encontrada no histórico."
+        return render(request, "analyzer/history.html", {"analyses": [], "message": message})
 
     except Exception as e:
-        print(f"Error in history view: {str(e)}")
+        error_message: str = f"Error in history view: {str(e)}"
+        print(error_message)
         return render(request, "analyzer/history.html",
                       {"analyses": [], "error": "Não foi possível carregar o histórico."})
