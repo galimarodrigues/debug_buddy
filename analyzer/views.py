@@ -77,17 +77,11 @@ def analyze_log(request: HttpRequest) -> HttpResponse:
                 # Get client IP address using the utility function
                 ip_address = get_client_ip(request)
 
-                # Generate or retrieve a session ID
-                if not request.session.session_key:
-                    request.session.create()
-                session_id = request.session.session_key
-
                 try:
                     LogAnalysis.objects.create(
                         log_input=log_text,
                         ai_response=result,
-                        ip_address=ip_address,
-                        session_id=session_id
+                        ip_address=ip_address
                     )
                 except Exception as db_error:
                     # Log the database error but don't fail the request
@@ -105,24 +99,13 @@ def history(request: HttpRequest) -> HttpResponse:
         # Get client IP address using the utility function
         ip_address = get_client_ip(request)
 
-        # Get session ID
-        session_id = request.session.session_key
-
-        # Create a query to filter by IP or session ID
-        from django.db.models import Q
-        query = Q()
-        if ip_address:
-            query |= Q(ip_address=ip_address)
-        if session_id:
-            query |= Q(session_id=session_id)
-
-        # If we have no identification method, return empty list
-        if not query:
+        # If we have no IP address, return empty list
+        if not ip_address:
             return render(request, "analyzer/history.html",
-                          {"analyses": [], "error": "Não foi possível identificar sua sessão."})
+                          {"analyses": [], "error": "Não foi possível identificar seu endereço IP."})
 
-        # Filter analyses by the user's IP address or session ID
-        analyses = LogAnalysis.objects.filter(query).order_by('-created_at')
+        # Filter analyses by the user's IP address
+        analyses = LogAnalysis.objects.filter(ip_address=ip_address).order_by('-created_at')
 
         return render(request, "analyzer/history.html", {"analyses": analyses})
     except Exception as e:
