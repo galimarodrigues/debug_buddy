@@ -111,11 +111,20 @@ def history(request: HttpRequest) -> HttpResponse:
         else:
             ip_address = request.META.get('REMOTE_ADDR')
 
+        print(f"DEBUG - IP address detected: {ip_address}")
+        print(f"DEBUG - X-Forwarded-For header: {x_forwarded_for}")
+        print(f"DEBUG - All request META: {request.META}")
+
         # Filter analyses by the user's IP address
         analyses = LogAnalysis.objects.filter(ip_address=ip_address).order_by('-created_at')
+
+        print(f"DEBUG - Query filter: ip_address={ip_address}")
+        print(f"DEBUG - Number of analyses found: {analyses.count()}")
+        print(f"DEBUG - First few analyses: {list(analyses[:3])}")
 
         return render(request, "analyzer/history.html", {"analyses": analyses})
     except Exception as e:
         # Log the error but return an empty analyses list
         print(f"Error in history view: {str(e)}")
-        return render(request, "analyzer/history.html", {"analyses": [], "error": "Não foi possível carregar o histórico."})
+        return render(request, "analyzer/history.html",
+                      {"analyses": [], "error": "Não foi possível carregar o histórico."})
