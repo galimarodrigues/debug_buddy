@@ -84,6 +84,10 @@ DATABASES = {
     'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
 }
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://debugbuddy.up.railway.app',
+]
+
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
