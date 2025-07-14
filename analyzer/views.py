@@ -32,21 +32,29 @@ Log:
 """
 
 
-def analyze_log(request: HttpRequest) -> HttpResponse:
+def get_client_ip(request: HttpRequest) -> str:
     """
-    View function to analyze Django/Python error logs using AI.
-
-    This function handles both GET and POST requests:
-    - GET: Displays the empty form
-    - POST: Processes the submitted log, sends it to OpenAI for analysis,
-            saves the analysis to the database with user's IP, and displays the result
+    Get the client's IP address from the request, handling both
+    direct connections and requests through proxies/load balancers.
 
     Args:
         request: The HTTP request object
 
     Returns:
-        Rendered HTML response with analysis result if available
+        The client's IP address as a string
     """
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        # In production with a proxy, the client IP is the first in the list
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        # Direct connection, use REMOTE_ADDR
+        ip = request.META.get('REMOTE_ADDR', '')
+
+    return ip
+
+
+def analyze_log(request: HttpRequest) -> HttpResponse:
     result: Optional[str] = None
 
     if request.method == "POST":
@@ -66,18 +74,20 @@ def analyze_log(request: HttpRequest) -> HttpResponse:
                 )
                 result = response['choices'][0]['message']['content']
 
-                # Get client IP address
-                x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-                if x_forwarded_for:
-                    ip_address = x_forwarded_for.split(',')[0]
-                else:
-                    ip_address = request.META.get('REMOTE_ADDR')
+                # Get client IP address using the utility function
+                ip_address = get_client_ip(request)
+
+                # Generate or retrieve a session ID
+                if not request.session.session_key:
+                    request.session.create()
+                session_id = request.session.session_key
 
                 try:
                     LogAnalysis.objects.create(
                         log_input=log_text,
                         ai_response=result,
-                        ip_address=ip_address
+                        ip_address=ip_address,
+                        session_id=session_id
                     )
                 except Exception as db_error:
                     # Log the database error but don't fail the request
@@ -91,36 +101,28 @@ def analyze_log(request: HttpRequest) -> HttpResponse:
 
 
 def history(request: HttpRequest) -> HttpResponse:
-    """
-    View function to display the history of log analyses for the current user.
-
-    Shows a list of previously analyzed logs submitted from the user's IP address,
-    ordered by most recent first.
-
-    Args:
-        request: The HTTP request object
-
-    Returns:
-        Rendered HTML response with the log analysis history
-    """
     try:
-        # Get client IP address
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            ip_address = x_forwarded_for.split(',')[0]
-        else:
-            ip_address = request.META.get('REMOTE_ADDR')
+        # Get client IP address using the utility function
+        ip_address = get_client_ip(request)
 
-        print(f"DEBUG - IP address detected: {ip_address}")
-        print(f"DEBUG - X-Forwarded-For header: {x_forwarded_for}")
-        print(f"DEBUG - All request META: {request.META}")
+        # Get session ID
+        session_id = request.session.session_key
 
-        # Filter analyses by the user's IP address
-        analyses = LogAnalysis.objects.filter(ip_address=ip_address).order_by('-created_at')
+        # Create a query to filter by IP or session ID
+        from django.db.models import Q
+        query = Q()
+        if ip_address:
+            query |= Q(ip_address=ip_address)
+        if session_id:
+            query |= Q(session_id=session_id)
 
-        print(f"DEBUG - Query filter: ip_address={ip_address}")
-        print(f"DEBUG - Number of analyses found: {analyses.count()}")
-        print(f"DEBUG - First few analyses: {list(analyses[:3])}")
+        # If we have no identification method, return empty list
+        if not query:
+            return render(request, "analyzer/history.html",
+                          {"analyses": [], "error": "Não foi possível identificar sua sessão."})
+
+        # Filter analyses by the user's IP address or session ID
+        analyses = LogAnalysis.objects.filter(query).order_by('-created_at')
 
         return render(request, "analyzer/history.html", {"analyses": analyses})
     except Exception as e:
