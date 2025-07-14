@@ -10,3 +10,6 @@ class LogAnalysis(models.Model):
 
     class Meta:
         verbose_name_plural = "Log Analyses"
+
+    def __str__(self):
+        return f"Análise #{self.id}"

@@ -4,6 +4,24 @@
 
 Criar um agente de IA que auxilie desenvolvedores fullstack a identificar e interpretar logs de erro em aplicações Python/Django, economizando tempo, melhorando a compreensão de exceções e sugerindo possíveis soluções.
 
+## 🚀 Hospedagem
+
+O Debug Buddy está disponível online com a seguinte infraestrutura:
+
+- **Aplicação**: Hospedada no [Railway](https://railway.app/)
+- **Banco de Dados**: Gerenciado pelo [Render](https://render.com/)
+
+### Acesso à Aplicação
+
+Você pode acessar o Debug Buddy diretamente em:
+[https://debugbuddy.up.railway.app](https://debugbuddy.up.railway.app)
+
+### Vantagens da Infraestrutura
+
+- **Railway**: Oferece implantação contínua e escalabilidade automática
+- **Render Database**: Proporciona banco de dados gerenciado e confiável
+- **Integração**: Arquitetura distribuída para melhor desempenho e disponibilidade
+
 ## 🔍 Problema Identificado
 
 Desenvolvedores frequentemente perdem tempo tentando entender logs de erro complexos, especialmente quando envolvem stacktraces extensos, erros de template ou problemas em queries.
@@ -45,7 +63,8 @@ O prompt foi projetado para ser claro, direto e focado em retorno útil e acion�
 - **Backend**: Python + Django
 - **Frontend**: Django Templates (HTML/CSS/JS)
 - **IA**: OpenAI API (GPT-4)
-- **Banco de Dados**: SQLite (padrão do Django)
+- **Hospedagem**: Railway
+- **Banco de Dados**: Render
 
 ## 🛠️ Como a IA Ajudou no Desenvolvimento
 

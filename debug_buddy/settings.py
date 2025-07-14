@@ -79,10 +79,22 @@ TEMPLATES = [
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 import dj_database_url
+import sys
 
-DATABASES = {
-    'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
-}
+# Define databases based on environment
+if 'test' in sys.argv:
+    # Use SQLite for testing
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',  # Use in-memory database for faster tests
+        }
+    }
+else:
+    # Use PostgreSQL for normal operation
+    DATABASES = {
+        'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
+    }
 
 CSRF_TRUSTED_ORIGINS = [
     'https://debugbuddy.up.railway.app',

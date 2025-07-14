@@ -1,7 +1,5 @@
 from django.test import TestCase, Client, RequestFactory
 from django.urls import reverse
-from django.http import HttpResponse
-from typing import List, Optional, Any
 from unittest.mock import patch, MagicMock
 from .models import LogAnalysis
 from .views import build_prompt
